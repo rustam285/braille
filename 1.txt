@@ -1,0 +1,105 @@
+"А": [],
+"К": ["ка", "ак"],
+"Б": ["баба"],
+"Л": ["Алла"],
+"М": ["мама", "ам-ам", "мак", "мала"],
+"П": ["папа"],
+"У": ["лук", "лапа", лупа, "колобок"],
+"Р": ["рука", "рама", "Лора"],
+"О": ["Рома", "лоб", "бор"],
+"С": ["сок", "суп", "собака", "сам", "сом", "сама", "сор"],
+"Т": ["стол", "стул", "кот", "рот", "Тома", "тут", "там"],
+"И": ["Ира", "Кира", "рис", "риск", "тиски"],
+"Д": ["дом", "да", "Дима", "лодка", "дуб", "иди", "домик"],
+"Н": ["нос", "Нина", "на", "нитка", "Ната", "сон"],
+"Й": ["дай", "майка", "мой руки", "лейка", "линейка", "сарай"],
+"З": ["зуб", "зима", "зонт", "Зина", "роза", "арбуз", "зеркало", "Зоя"],
+"В": ["Вова", "вот", "ваза", "вата", "ванна", "двор", "волос"],
+"Г": ["голова", "голос", "горло", "глаза", "магазин", "гора"],
+"Е": ["Гена", "Лена", "лес", "веник", "мел", "сено"],
+"Ё": ["ёлка", "мёд", "берёза"],
+"Ж": ["ёж", "жук", "нож", "ложка", "ножка", "лужа"],
+"Ч": ["чайник", "качели", "дочка", "чай"],
+"Щ": ["щи", "щука", "щека", "щетка", "борщ"],
+"Ш": ["шапка", "шуба", "Маша", "Саша", "каша", "уши"],
+"Ц": ["курица", "улица", "солнце"],
+"Я": ["яблоко", "Яша", "яйцо", "яма", "Таня", "Валя", "ягода"],
+"Х": ["хлеб", "хорошо", "халат", "ухо", "орех", "плохо", "хор", "ход"],
+"Ю": ["юла", "Юля", "юбка", "утюг", "ключ", "Юра"],
+"Ы": ["сыр", "сын", "зубы", "мыло", "часы", "дырка"],
+"Ф": ["фото", "фартук", "футбол", "кофта", "конфета", "фары"],
+"Э": ["этаж", "это", "эликсир"],
+"Ь": ["дочь", "ночь", "день", "мышь", "гусь", "лось", "деньги"],
+"Ъ": ["подъезд", "разъезд", "отъезд", "въезд", "съезд"]
+
+["А", "К", "Б", "Л", "М", "П", "У", "Р", "О", "С", "Т", "И", "Д", "Н", "Й", "З", "В", "Г", "Е", "Ё", "Ж", "Ч", "Щ", "Ш", "Ц", "Я", "Х", "Ю", "Ы", "Ф", "Э", "Ь", "Ъ"]
+
+
+{100001: <resources.BrailleLetter object at 0x000001B9BCB20C40>, 
+111010: <resources.BrailleLetter object at 0x000001B9BCB20730>, 
+11011: <resources.BrailleLetter object at 0x000001B9BCB207F0>, 
+11001: <resources.BrailleLetter object at 0x000001B9BD8E6DD0>, 
+10001: <resources.BrailleLetter object at 0x000001B9BD8E7790>, 
+11010: <resources.BrailleLetter object at 0x000001B9BD8E7A60>, 
+110101: <resources.BrailleLetter object at 0x000001B9BD8E49A0>, 
+1010: <resources.BrailleLetter object at 0x000001B9BD8E76D0>, 
+101111: <resources.BrailleLetter object at 0x000001B9BD8E63B0>, 
+101: <resources.BrailleLetter object at 0x000001B9BD8E6440>, 
+111: <resources.BrailleLetter object at 0x000001B9BD8E5BD0>, 
+1101: <resources.BrailleLetter object at 0x000001B9BD8E6680>, 
+11101: <resources.BrailleLetter object at 0x000001B9BD8E5600>, 
+10101: <resources.BrailleLetter object at 0x000001B9BD8E58D0>, 
+1111: <resources.BrailleLetter object at 0x000001B9BD8E5DE0>, 
+10111: <resources.BrailleLetter object at 0x000001B9BD8E6CB0>, 
+1110: <resources.BrailleLetter object at 0x000001B9BD8E4850>, 
+11110: <resources.BrailleLetter object at 0x000001B9BD8E4AC0>, 
+100101: <resources.BrailleLetter object at 0x000001B9BD8E4BE0>, 
+1011: <resources.BrailleLetter object at 0x000001B9BD8E7280>, 
+10011: <resources.BrailleLetter object at 0x000001B9BD8E4370>, 
+1001: <resources.BrailleLetter object at 0x000001B9BD8E6EF0>, 
+11111: <resources.BrailleLetter object at 0x000001B9BD8E4A60>, 
+110001: <resources.BrailleLetter object at 0x000001B9BD8E44C0>, 
+101101: <resources.BrailleLetter object at 0x000001B9BD8E7C40>, 
+110111: <resources.BrailleLetter object at 0x000001B9BD8E73A0>, 
+101110: <resources.BrailleLetter object at 0x000001B9BD8E7490>, 
+111110: <resources.BrailleLetter object at 0x000001B9BD8E6E00>, 
+101010: <resources.BrailleLetter object at 0x000001B9BD8E4820>, 
+110011: <resources.BrailleLetter object at 0x000001B9BD8E4340>, 
+101011: <resources.BrailleLetter object at 0x000001B9BD8E55A0>, 
+-1: <resources.BrailleLetter object at 0x000001B9BD8E5090>} 
+1
+
+шаблон
+
+{
+    *id ученика*: {
+        "*буква пройденного диктанта*": {
+            *кол-во ошибок*,
+            [
+            *слова в которых он допустил ошибку*
+            ], 
+            *оценка ученика за этот диктант*
+        }
+    }
+}
+
+пример 
+
+{
+    22: {
+        "с": {
+            1,
+            [
+            "собака"
+            ], 
+            4
+        },
+        "г": {
+            1,
+            [
+            "голова"
+            ], 
+            4
+        }
+    }
+}
