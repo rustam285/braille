@@ -50,7 +50,6 @@ for image_file in os.listdir(images_dir):
             
             # Добавляем в словарь
             letters_data[letter_code] = (image_path, sound_path)
-            print(f"Загружено: {letter_name} (код: {letter_code})")
         else:
             print(f"Ошибка: звук для буквы {letter_name} не найден: {sound_path}")
 

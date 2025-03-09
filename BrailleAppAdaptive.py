@@ -2,28 +2,16 @@ import pygame
 from pygame.locals import *
 import sys
 import json
-import random
 from resources import letters, images
 import pyttsx3
+from dictation_module import DictationModule
 
 # Константы
-FPS = 60
+FPS = 120
 WHITE = (255, 255, 255)
 BLUE = (0, 70, 225)
 GRAY = (200, 200, 200)
-
-# Загрузка базы данных учеников
-def load_students():
-    try:
-        with open('students.json', 'r', encoding='utf-8') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        return {}
-
-# Сохранение базы данных учеников
-def save_students(students):
-    with open('students.json', 'w', encoding='utf-8') as file:
-        json.dump(students, file, ensure_ascii=False, indent=4)
+DB_FILE = "students_db.json"
 
 class BrailleApp:
     def __init__(self):
@@ -31,9 +19,6 @@ class BrailleApp:
         self.init_screen()
         self.init_variables()
         self.init_tts()
-        self.students = load_students()  # Загружаем базу данных учеников
-        self.dictation_mode = False  # Режим диктанта
-        self.current_student_id = None  # ID текущего ученика
 
     def init_pygame(self):
         pygame.init()
@@ -41,14 +26,17 @@ class BrailleApp:
 
     def init_screen(self):
         screen_info = pygame.display.Info()
-        self.W = int(screen_info.current_w * 0.75)  # 75% от ширины экрана
-        self.H = int(screen_info.current_h * 0.8)   # 80% от высоты экрана
+        self.W = int(screen_info.current_w * 0.75)
+        self.H = int(screen_info.current_h * 0.8)
         self.sc = pygame.display.set_mode((self.W, self.H), pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
 
     def init_variables(self):
         self.pin = 0
         self.s_word = []
+        self.mode = "free"  # "free" или "dictation"
+        self.student_id = None
+        self.dictation_module = None
         self.update_positions()
 
     def init_tts(self):
@@ -57,15 +45,14 @@ class BrailleApp:
         self.engine.setProperty("voice", "russian")
 
     def update_positions(self):
-        """Обновляет координаты элементов в зависимости от размера окна"""
         self.circle_radius = int(self.W * 0.05)
         self.circle_positions = [
-            (int(self.W * 0.09), int(self.H * 0.15)),  # ЛВ
-            (int(self.W * 0.09), int(self.H * 0.5)),   # ЛВ
-            (int(self.W * 0.09), int(self.H * 0.85)),  # ЛН
-            (int(self.W * 0.27), int(self.H * 0.15)),  # ПВ
-            (int(self.W * 0.27), int(self.H * 0.5)),   # ПС
-            (int(self.W * 0.27), int(self.H * 0.85))   # ПН
+            (int(self.W * 0.09), int(self.H * 0.15)),
+            (int(self.W * 0.09), int(self.H * 0.5)),
+            (int(self.W * 0.09), int(self.H * 0.85)),
+            (int(self.W * 0.27), int(self.H * 0.15)),
+            (int(self.W * 0.27), int(self.H * 0.5)),
+            (int(self.W * 0.27), int(self.H * 0.85))
         ]
         self.letter_start_x = int(self.W * 0.35)
         self.letter_start_y = int(self.H * 0.01)
@@ -73,8 +60,17 @@ class BrailleApp:
     def clear_win(self):
         self.sc.fill(GRAY)
 
+    def switch_mode(self):
+        if self.mode == "free":
+            self.mode = "dictation"
+            self.prompt_student_id()
+        else:
+            self.mode = "free"
+            self.dictation_module = None
+            self.student_id = None
+            self.clear_win()
+
     def clear_braille_dots(self):
-        """Очищает только кружки, не трогая слово на экране"""
         for pos in self.circle_positions:
             pygame.draw.circle(self.sc, GRAY, pos, self.circle_radius)
 
@@ -90,6 +86,24 @@ class BrailleApp:
             101010: 'Э', 110011: 'Ю', 101011: 'Я', 0: ' '
         }
         return letter_map.get(pin, '?')  # '?' если символ не найден
+
+    def prompt_student_id(self):
+        self.engine.say("Введите свой код ученика")
+        self.engine.runAndWait()
+        self.student_id = input("Введите код ученика: ")
+        self.load_student_progress()
+        self.dictation_module = DictationModule(self.student_id, self)
+        self.dictation_module.start_dictation()
+
+    def load_student_progress(self):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                self.student_data = json.load(f)
+        except FileNotFoundError:
+            self.student_data = {}
+        
+        if self.student_id not in self.student_data:
+            self.student_data[self.student_id] = {}
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -129,8 +143,8 @@ class BrailleApp:
         elif event.key == K_KP_PERIOD:
             self.handle_phrase_output()
 
-        elif event.key == K_KP_MINUS:
-            print("".join([char for _, char in self.s_word]))
+        elif event.key == K_SPACE:
+            self.switch_mode()
 
         elif event.key == K_KP_PLUS:
             self.handle_plus_key()
@@ -140,74 +154,18 @@ class BrailleApp:
             self.s_word.clear()
             self.pin = 0
 
-        elif event.key == K_SPACE:  # Переход в режим диктанта
-            self.dictation_mode = True
-            self.engine.say("Включен режим диктанта")
-            self.engine.runAndWait()
-            self.start_dictation()
-
-    def start_dictation(self):
-        """Запуск режима диктанта"""
-        # Запрос ID ученика
-        self.engine.say("Введите код ученика")
-        self.engine.runAndWait()
-        student_id = input("Введите код ученика: ").strip()
-
-        if student_id in self.students:
-            self.current_student_id = student_id
-            self.engine.say(f"Ученик {student_id} найден.")
-            self.check_completed_dictations()
-        else:
-            self.engine.say("Ученик не найден. Создаем нового ученика.")
-            self.students[student_id] = {}
-            self.current_student_id = student_id
-            save_students(self.students)
-
-        self.run_dictation()
-
-    def check_completed_dictations(self):
-        """Проверка пройденных диктантов"""
-        student_data = self.students[self.current_student_id]
-        completed_letters = list(student_data.keys())
-        if completed_letters:
-            self.engine.say(f"Вы прошли диктанты на следующие буквы: {', '.join(completed_letters)}")
-        else:
-            self.engine.say("Вы еще не прошли ни одного диктанта.")
-        self.engine.runAndWait()
-
-    def run_dictation(self):
-        """Запуск диктанта"""
-        from dictionaries import letters_for_dictations, dictations
-
-        for letter in letters_for_dictations:
-            if letter not in self.students[self.current_student_id]:
-                self.engine.say(f"Теперь у вас диктант на букву {letter}.")
-                self.engine.runAndWait()
-                self.run_letter_dictation(letter)
-
-    def run_letter_dictation(self, letter):
-        """Запуск диктанта для конкретной буквы"""
-        from dictionaries import dictations
-
-        words = dictations[letter]
-        random.shuffle(words)  # Перемешиваем слова
-
-        for word in words:
-            self.engine.say(f"Наберите слово {word}")
-            self.engine.runAndWait()
-            user_input = input().strip().lower()
-            if user_input == word:
-                self.engine.say("Правильно!")
-            else:
-                self.engine.say("Неправильно!")
-            self.engine.runAndWait()
-
+        elif event.key == K_KP_MINUS:
+            if self.mode == "free":
+                print("".join([char for _, char in self.s_word]))
+            elif self.mode == "dictation" and self.dictation_module:
+                self.dictation_module.check_word("".join([char for _, char in self.s_word]).strip().lower())
+                self.s_word.clear()
+            
     def handle_enter_key(self):
         if self.pin in letters:
             letters[self.pin].play_sound()
         else:
             letters[-1].play_sound()
-            print(letters, self.pin)
             self.clear_braille_dots()
             self.pin = 0
 
