@@ -95,24 +95,7 @@ class BrailleApp:
         self.student_id = input("Введите код ученика: ")
         self.load_student_progress()
         self.dictation_module = DictationModule(self.student_id, self)
-
-        # Заменяем вызов start_dictation() на прямую инициализацию
-        if "Начальный диктант" not in self.dictation_module.student_data[self.student_id][self.dictation_module.today]:
-            # Проигрываем сообщение для начального диктанта
-            play_sound(sounds[8])
-            pygame.time.delay(2500)
-            self.dictation_module.current_letter = "Начальный диктант"
-            self.dictation_module.word_queue = iter(dictations["Начальный диктант"])
-        else:
-            # Иначе начинаем обычный диктант
-            self.dictation_module.current_letter = next(self.dictation_module.dictation_queue)
-            play_sound(sounds[6])
-            pygame.time.delay(4500)
-            letters[letter_code_map[self.dictation_module.current_letter.lower()]].play_sound()
-            pygame.time.delay(1500)
-            self.dictation_module.word_queue = iter(dictations[self.dictation_module.current_letter])
-
-        self.dictation_module.next_word()
+        self.dictation_module.next_letter()
 
     def load_student_progress(self):
         try:

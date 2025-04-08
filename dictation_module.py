@@ -3,7 +3,9 @@ import json
 import datetime
 import pygame
 from dictionaries import letters_for_dictations, dictations, letter_code_map, sounds, play_sound
-from resources import letters, words_for_dict
+from resources import words_for_dict, letters
+import random
+from collections import OrderedDict
 
 DB_FILE = "students_db.json"
 
@@ -21,17 +23,48 @@ class DictationModule:
         self.dictation_queue = self.get_today_dictations()
         self.is_first_dictation = True  # Флаг для первого диктанта
         self.word_queue = None
-        
+        self.words_history = []
+
+    def get_words_for_dictation(self, current_letter):
+        main_words = dictations[current_letter].copy()
+
+        # Для начального диктанта берем ровно 10 слов
+        if current_letter == "Начальный диктант":
+            self.words_history.extend(main_words)
+            self.words_history = list(OrderedDict.fromkeys(self.words_history))
+            return main_words[:10]
+
+        # Для остальных диктантов дополняем из предыдущих
+        needed_words = 10 - len(main_words)
+        if needed_words > 0:
+            # Собираем все предыдущие диктанты
+            current_index = letters_for_dictations.index(current_letter)
+            previous_letters = letters_for_dictations[:current_index]
+            previous_words = []
+            for letter in previous_letters:
+                previous_words.extend(dictations[letter])
+            # Убираем повторы и слова, уже присутствующие в текущем диктанте
+            previous_words = list(OrderedDict.fromkeys(previous_words))
+            available_words = [w for w in previous_words if w not in main_words]
+            additional_words = random.sample(available_words, min(needed_words, len(available_words)))
+            main_words.extend(additional_words)
+
+        # Обновляем историю
+        self.words_history.extend(main_words)
+        self.words_history = list(OrderedDict.fromkeys(self.words_history))
+
+        return main_words[:10]
+
     def load_student_progress(self):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 self.student_data = json.load(f)
         except FileNotFoundError:
             self.student_data = {}
-        
+
         if self.student_id not in self.student_data:
             self.student_data[self.student_id] = {}
-        
+
         if self.today not in self.student_data[self.student_id]:
             self.student_data[self.student_id][self.today] = {}
 
@@ -46,15 +79,13 @@ class DictationModule:
     def get_today_dictations(self):
         completed = self.student_data[self.student_id][self.today].keys()
         available = []
-        
-        # Проверяем начальный диктант
+
         if "Начальный диктант" not in completed:
             available.append("Начальный диктант")
-        
-        # Добавляем остальные буквы
+
         available.extend([letter for letter in letters_for_dictations 
                         if letter != "Начальный диктант" and letter not in completed])
-        
+
         return iter(available)
 
     def clear_win(self):
@@ -65,11 +96,24 @@ class DictationModule:
     def next_letter(self):
         try:
             self.current_letter = next(self.dictation_queue)
-            self.word_queue = iter(dictations[self.current_letter])
+            print(f"История слов до: {self.words_history}")
+
+            words = self.get_words_for_dictation(self.current_letter)
+            print(f"Слова для диктанта '{self.current_letter}': {words}")
+
+            if self.current_letter == "Начальный диктант":
+                play_sound(sounds[8])
+            else:
+                play_sound(sounds[6])
+                pygame.time.delay(3500)
+                letters[letter_code_map[self.current_letter.lower()]].play_sound()
+
+            self.word_queue = iter(words)
             self.next_word()
+
         except StopIteration:
             self.clear_win()
-            play_sound(sounds[0])  # Звук завершения
+            play_sound(sounds[0])
             self.current_letter = None
             self.current_word = None
 
@@ -79,7 +123,6 @@ class DictationModule:
             return
         try:
             self.current_word = next(self.word_queue)
-            # Проигрываем "наберите слово" + само слово
             pygame.time.delay(2500)
             play_sound(sounds[2])
             pygame.time.delay(2500)
@@ -108,13 +151,11 @@ class DictationModule:
             play_sound(sounds[4])
             self.next_word()
 
-        # Очистка экрана и задержка
         self.braille_app.clear_win()
         self.braille_app.s_word.clear()
         self.braille_app.pin = 0
 
     def update_student_progress(self, word, correct, mistake=None):
-        # Используем "Начальный диктант" как ключ, если это первый диктант
         dictation_key = "Начальный диктант" if self.current_letter == "Начальный диктант" else self.current_letter
 
         if dictation_key not in self.student_data[self.student_id][self.today]:
