@@ -1,7 +1,7 @@
 import pygame
 import os
 import sys
-from dictionaries import letter_code_map
+from dictionaries import letter_code_map, dictations
 
 # Инициализация микшера перед загрузкой звуков
 pygame.init()
@@ -28,7 +28,7 @@ class BrailleLetter:
 
 # Пути к папкам с изображениями и звуками
 images_dir = 'images'
-sounds_dir = 'sounds/letters'
+sounds_dir = 'sounds'
 
 # Словарь для хранения данных
 letters_data = {}
@@ -41,7 +41,7 @@ for image_file in os.listdir(images_dir):
         
         # Формируем путь к изображению и звуку
         image_path = os.path.join(images_dir, image_file)
-        sound_path = os.path.join(sounds_dir, f'буква_{letter_name}.ogg')
+        sound_path = os.path.join(sounds_dir, f'{letter_name}.ogg')
         
         # Если звук существует, добавляем в словарь
         if os.path.exists(resource_path(sound_path)):
@@ -54,7 +54,7 @@ for image_file in os.listdir(images_dir):
             print(f"Ошибка: звук для буквы {letter_name} не найден: {sound_path}")
 
 # Добавляем специальный случай для перенабора
-letters_data[-1] = (None, os.path.join(sounds_dir, 'perenabor_l.ogg'))
+letters_data[-1] = (None, os.path.join(sounds_dir, 'набрать букву заново.ogg'))
 
 # Создаем словарь с объектами BrailleLetter
 letters = {pin: BrailleLetter(image_path, sound_path) for pin, (image_path, sound_path) in letters_data.items()}
@@ -65,3 +65,23 @@ images = {pin: letter.image for pin, letter in letters.items() if letter.image}
 # Добавляем пробел, если его нет
 if 0 not in images:
     images[0] = pygame.image.load(resource_path('images/пробел.png'))
+    
+# Путь к папке со звуками слов
+words_sounds_dir = os.path.join(sounds_dir, 'words')
+
+# Словарь для хранения звуков слов
+words_for_dict = {}
+
+# Создаем плоский список всех слов из dictations
+all_words = []
+for letter_words in dictations.values():
+    all_words.extend(letter_words)
+
+# Загружаем звуки для каждого слова
+for word in all_words:
+    sound_path = os.path.join(words_sounds_dir, f'{word}.ogg')
+    if os.path.exists(resource_path(sound_path)):
+        words_for_dict[word] = pygame.mixer.Sound(resource_path(sound_path))
+    else:
+        print(f"Предупреждение: звук для слова '{word}' не найден: {sound_path}")
+        words_for_dict[word] = None

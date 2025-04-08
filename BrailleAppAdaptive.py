@@ -2,9 +2,10 @@ import pygame
 from pygame.locals import *
 import sys
 import json
-from resources import letters, images
+from resources import letters, images, all_words, words_for_dict
 import pyttsx3
 from dictation_module import DictationModule
+from dictionaries import sounds, play_sound, dictations, letter_code_map
 
 # Константы
 FPS = 120
@@ -88,12 +89,30 @@ class BrailleApp:
         return letter_map.get(pin, '?')  # '?' если символ не найден
 
     def prompt_student_id(self):
-        self.engine.say("Введите свой код ученика")
-        self.engine.runAndWait()
+        play_sound(sounds[7])  # "Введите код ученика"
+        pygame.time.delay(4000)
+        play_sound(sounds[9])  # "Начнется диктант"
         self.student_id = input("Введите код ученика: ")
         self.load_student_progress()
         self.dictation_module = DictationModule(self.student_id, self)
-        self.dictation_module.start_dictation()
+
+        # Заменяем вызов start_dictation() на прямую инициализацию
+        if "Начальный диктант" not in self.dictation_module.student_data[self.student_id][self.dictation_module.today]:
+            # Проигрываем сообщение для начального диктанта
+            play_sound(sounds[8])
+            pygame.time.delay(2500)
+            self.dictation_module.current_letter = "Начальный диктант"
+            self.dictation_module.word_queue = iter(dictations["Начальный диктант"])
+        else:
+            # Иначе начинаем обычный диктант
+            self.dictation_module.current_letter = next(self.dictation_module.dictation_queue)
+            play_sound(sounds[6])
+            pygame.time.delay(4500)
+            letters[letter_code_map[self.dictation_module.current_letter.lower()]].play_sound()
+            pygame.time.delay(1500)
+            self.dictation_module.word_queue = iter(dictations[self.dictation_module.current_letter])
+
+        self.dictation_module.next_word()
 
     def load_student_progress(self):
         try:
@@ -172,7 +191,9 @@ class BrailleApp:
     def handle_phrase_output(self):
         """Собирает всю фразу из массива букв и выводит в консоль"""
         phrase = "".join([char for _, char in self.s_word])
-        if phrase:
+        if phrase.lower() in all_words:
+            play_sound(words_for_dict[phrase.lower()])
+        else:
             self.engine.say(phrase)
             self.engine.runAndWait()
 
