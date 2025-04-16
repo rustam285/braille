@@ -132,12 +132,12 @@ class BrailleApp:
         if self.waiting_for_student_id:
             if event.key == K_BACKSPACE:
                 self.typed_id = self.typed_id[:-1]
-            elif event.key == K_RETURN or event.key == K_KP_ENTER:
+            elif event.key == K_RETURN:
                 self.student_id = self.typed_id
                 self.typed_id = ""
                 self.waiting_for_student_id = False
                 self.prompt_student_id()
-            elif event.unicode.isprintable():
+            elif event.unicode.isprintable() and len(event.unicode) == 1:
                 self.typed_id += event.unicode
             return
 
@@ -214,17 +214,17 @@ class BrailleApp:
 
     def run(self):
         self.clear_win()
+        self.sc.fill(GRAY)
+        
         while self.handle_events():
-            self.sc.fill(GRAY)
             if self.waiting_for_student_id:
                 prompt = self.font.render("Введите код ученика:", True, BLACK)
                 entry = self.font.render(self.typed_id + "|", True, BLACK)
                 self.sc.blit(prompt, (self.W // 2 - prompt.get_width() // 2, self.H // 2 - 50))
                 self.sc.blit(entry, (self.W // 2 - entry.get_width() // 2, self.H // 2))
             else:
-                # Основной рендеринг приложения
                 pass
-
+            
             pygame.display.update()
             self.clock.tick(FPS)
 
