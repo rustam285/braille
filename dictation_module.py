@@ -96,16 +96,15 @@ class DictationModule:
     def next_letter(self):
         try:
             self.current_letter = next(self.dictation_queue)
-            print(f"История слов до: {self.words_history}")
 
             words = self.get_words_for_dictation(self.current_letter)
-            print(f"Слова для диктанта '{self.current_letter}': {words}")
 
             if self.current_letter == "Начальный диктант":
                 play_sound(sounds[8])
+                pygame.time.delay(5500)
             else:
                 play_sound(sounds[6])
-                pygame.time.delay(3500)
+                pygame.time.delay(4500)
                 letters[letter_code_map[self.current_letter.lower()]].play_sound()
 
             self.word_queue = iter(words)

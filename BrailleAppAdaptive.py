@@ -6,12 +6,13 @@ from resources import letters, images, all_words, words_for_dict
 import pyttsx3
 from dictation_module import DictationModule
 from dictionaries import sounds, play_sound, dictations, letter_code_map
+import argparse
 
-# Константы
 FPS = 120
 WHITE = (255, 255, 255)
 BLUE = (0, 70, 225)
 GRAY = (200, 200, 200)
+BLACK = (0, 0, 0)
 DB_FILE = "students_db.json"
 
 class BrailleApp:
@@ -31,13 +32,16 @@ class BrailleApp:
         self.H = int(screen_info.current_h * 0.8)
         self.sc = pygame.display.set_mode((self.W, self.H), pygame.RESIZABLE)
         self.clock = pygame.time.Clock()
+        self.font = pygame.font.SysFont("arial", 32)
 
     def init_variables(self):
         self.pin = 0
         self.s_word = []
-        self.mode = "free"  # "free" или "dictation"
+        self.mode = "free"
         self.student_id = None
         self.dictation_module = None
+        self.waiting_for_student_id = False
+        self.typed_id = ""
         self.update_positions()
 
     def init_tts(self):
@@ -64,7 +68,10 @@ class BrailleApp:
     def switch_mode(self):
         if self.mode == "free":
             self.mode = "dictation"
-            self.prompt_student_id()
+            self.waiting_for_student_id = True
+            play_sound(sounds[7])
+            pygame.time.delay(4000)
+            play_sound(sounds[9])
         else:
             self.mode = "free"
             self.dictation_module = None
@@ -76,7 +83,6 @@ class BrailleApp:
             pygame.draw.circle(self.sc, GRAY, pos, self.circle_radius)
 
     def get_letter_symbol(self, pin):
-        """Возвращает текстовое представление буквы по её коду"""
         letter_map = {
             1: 'А', 11: 'Б', 111010: 'В', 11011: 'Г', 11001: 'Д',
             10001: 'Е', 100001: 'Ё', 11010: 'Ж', 110101: 'З', 1010: 'И',
@@ -86,13 +92,9 @@ class BrailleApp:
             110001: 'Ш', 101101: 'Щ', 110111: 'Ъ', 101110: 'Ы', 111110: 'Ь',
             101010: 'Э', 110011: 'Ю', 101011: 'Я', 0: ' '
         }
-        return letter_map.get(pin, '?')  # '?' если символ не найден
+        return letter_map.get(pin, '?')
 
     def prompt_student_id(self):
-        play_sound(sounds[7])  # "Введите код ученика"
-        pygame.time.delay(4000)
-        play_sound(sounds[9])  # "Начнется диктант"
-        self.student_id = input("Введите код ученика: ")
         self.load_student_progress()
         self.dictation_module = DictationModule(self.student_id, self)
         self.dictation_module.next_letter()
@@ -103,7 +105,7 @@ class BrailleApp:
                 self.student_data = json.load(f)
         except FileNotFoundError:
             self.student_data = {}
-        
+
         if self.student_id not in self.student_data:
             self.student_data[self.student_id] = {}
 
@@ -127,7 +129,18 @@ class BrailleApp:
         self.update_positions()
 
     def handle_keydown(self, event):
-        """Обрабатывает нажатия клавиш и рисует кружки"""
+        if self.waiting_for_student_id:
+            if event.key == K_BACKSPACE:
+                self.typed_id = self.typed_id[:-1]
+            elif event.key == K_RETURN or event.key == K_KP_ENTER:
+                self.student_id = self.typed_id
+                self.typed_id = ""
+                self.waiting_for_student_id = False
+                self.prompt_student_id()
+            elif event.unicode.isprintable():
+                self.typed_id += event.unicode
+            return
+
         key_map = {
             K_KP7: (1, 0),   K_KP8: (1000, 3),
             K_KP4: (10, 1),  K_KP5: (10000, 4),
@@ -162,7 +175,7 @@ class BrailleApp:
             elif self.mode == "dictation" and self.dictation_module:
                 self.dictation_module.check_word("".join([char for _, char in self.s_word]).strip().lower())
                 self.s_word.clear()
-            
+
     def handle_enter_key(self):
         if self.pin in letters:
             letters[self.pin].play_sound()
@@ -172,29 +185,24 @@ class BrailleApp:
             self.pin = 0
 
     def handle_phrase_output(self):
-        """Собирает всю фразу из массива букв и выводит в консоль"""
         phrase = "".join([char for _, char in self.s_word])
         if phrase.lower() in all_words:
             play_sound(words_for_dict[phrase.lower()])
+        elif self.pin in letters:
+            letters[self.pin].play_sound()
         else:
             self.engine.say(phrase)
             self.engine.runAndWait()
 
     def handle_plus_key(self):
-        """Добавляет букву в массив s_word и отображает её на экране"""
         if self.pin in letters:
             letter = letters[self.pin]
             letter.play_sound()
             letter_symbol = self.get_letter_symbol(self.pin)
-
-            # Сохраняем конкретное изображение буквы
-            letter_image = images.get(self.pin)  # Получаем изображение по ключу
-            if letter_image:  # Если изображение найдено
+            letter_image = images.get(self.pin)
+            if letter_image:
                 self.s_word.append((letter_image, letter_symbol))
-
                 self.clear_win()
-
-                # Отображаем все буквы
                 x, y = self.letter_start_x, self.letter_start_y
                 for img, char in self.s_word:
                     self.sc.blit(img, (x, y))
@@ -202,15 +210,32 @@ class BrailleApp:
                     x += letter_width + 5
                     if x > self.W - letter_width:
                         x, y = self.letter_start_x, y + letter_height + 5
-
                 self.pin = 0
 
     def run(self):
         self.clear_win()
         while self.handle_events():
+            self.sc.fill(GRAY)
+            if self.waiting_for_student_id:
+                prompt = self.font.render("Введите код ученика:", True, BLACK)
+                entry = self.font.render(self.typed_id + "|", True, BLACK)
+                self.sc.blit(prompt, (self.W // 2 - prompt.get_width() // 2, self.H // 2 - 50))
+                self.sc.blit(entry, (self.W // 2 - entry.get_width() // 2, self.H // 2))
+            else:
+                # Основной рендеринг приложения
+                pass
+
             pygame.display.update()
             self.clock.tick(FPS)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["free", "dictation"], default="free")
+    args = parser.parse_args()
+
     app = BrailleApp()
+    app.mode = args.mode
+    if app.mode == "dictation":
+        app.mode = "free"
+        app.switch_mode()
     app.run()
